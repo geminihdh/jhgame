@@ -1,7 +1,7 @@
 {
   "name": "지환이의 신나는 놀이방",
   "short_name": "지환이 놀이방",
-  "description": "공룡·자동차·기차·동물과 놀면서 배우는 5살 놀이 모음",
+  "description": "한글·영어를 놀면서 배우는 5살 놀이방",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

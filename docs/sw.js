@@ -1,6 +1,6 @@
 // 오프라인에서도 열리도록 파일을 기기에 저장해 둬요.
 // 앱을 고쳐서 다시 올렸다면 아래 숫자(v1)를 v2, v3…로 올려야 새 버전이 보여요.
-const VERSION = 'playroom-v1';
+const VERSION = 'playroom-v3';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'fonts/Jua.woff2', 'fonts/GowunDodum.woff2'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
