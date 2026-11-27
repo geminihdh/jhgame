@@ -11,6 +11,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<script>if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)&&!window.Capacitor){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 <style>
 @font-face{font-family:"Jua";src:url(fonts/Jua.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
 @font-face{font-family:"Gowun Dodum";src:url(fonts/GowunDodum.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
@@ -200,6 +201,11 @@ button:focus-visible{outline:4px solid #7aa8ff;outline-offset:2px}
 .match .opt.up{background:#fff3e6}.match .opt.low{background:#e8f3ff}
 .match .opt.up.ok,.match .opt.low.ok{background:var(--good-soft)}
 
+.notice{display:block;width:100%;background:#fff3cd;border:3px solid #ffc93c;border-radius:20px;padding:12px 16px;margin:-4px 0 14px;font-family:"Jua",sans-serif;font-size:19px;text-align:left;color:#7a5a00}
+.panel details{border-top:2px dashed var(--line);padding:8px 0}
+.panel summary{font-family:"Jua",sans-serif;font-size:19px;cursor:pointer;padding:6px 0}
+.panel details p{margin:4px 0 4px 6px}
+
 </style>
 </head>
 <body>
@@ -231,6 +237,9 @@ function decompose(ch){
 const C_SOUND={'ㄱ':'그','ㄴ':'느','ㄷ':'드','ㄹ':'르','ㅁ':'므','ㅂ':'브','ㅅ':'스','ㅇ':'','ㅈ':'즈','ㅊ':'츠','ㅋ':'크','ㅌ':'트','ㅍ':'프','ㅎ':'흐'};
 const C_NAME={'ㄱ':'기역','ㄴ':'니은','ㄷ':'디귿','ㄹ':'리을','ㅁ':'미음','ㅂ':'비읍','ㅅ':'시옷','ㅇ':'이응','ㅈ':'지읒','ㅊ':'치읓','ㅋ':'키읔','ㅌ':'티읕','ㅍ':'피읖','ㅎ':'히읗'};
 const V_SOUND={'ㅏ':'아','ㅑ':'야','ㅓ':'어','ㅕ':'여','ㅗ':'오','ㅛ':'요','ㅜ':'우','ㅠ':'유','ㅡ':'으','ㅣ':'이'};
+// 글자가 만들어지는 소리를 한 문장으로: "그, 아, 가." (ㅇ은 소리가 없어서 "아, 아.")
+function sounds(c,v){ const cs=C_SOUND[c]; return (cs?cs+', ':'')+V_SOUND[v]+'.'; }
+function phonics(c,v){ const cs=C_SOUND[c]; return (cs?cs+', ':'')+V_SOUND[v]+', '+compose(c,v)+'.'; }
 // 자음 → 그 자음으로 시작하는 쉬운 낱말 (그림 카드용)
 const C_WORD={'ㄱ':'가방','ㄴ':'나비','ㄷ':'다람쥐','ㄹ':'라디오','ㅁ':'모자','ㅂ':'바나나','ㅅ':'사과','ㅇ':'아기','ㅈ':'자동차','ㅊ':'치즈','ㅋ':'코끼리','ㅌ':'토끼','ㅍ':'포도','ㅎ':'하마'};
 const V_WORD={'ㅏ':'아기','ㅑ':'야구','ㅓ':'어린이','ㅕ':'여우','ㅗ':'오리','ㅛ':'요요','ㅜ':'우유','ㅠ':'유령','ㅡ':'음악','ㅣ':'이빨'};
@@ -494,11 +503,11 @@ function bestVoice(voices,lang){
 // 한 번에 말하는 글을 짧게 끊어서 또박또박 말하게 해요
 function speechChunks(text){
   // (구형 아이패드 사파리에서도 되도록 lookbehind 정규식은 쓰지 않아요)
-  return String(text).replace(/([.!?。,，])\s+/g,'$1\u0001').split(/\u0001|\n+/).map(x=>x.trim()).filter(Boolean);
+  return String(text).replace(/([.!?。])\s+/g,'$1\u0001').split(/\u0001|\n+/).map(x=>x.trim()).filter(Boolean);
 }
 
 root.JP={
-  CHO,JUNG,JONG,compose,decompose,C_SOUND,C_NAME,V_SOUND,C_WORD,V_WORD,CONS,VOWS,HG_STAGE,
+  CHO,JUNG,JONG,compose,decompose,sounds,phonics,C_SOUND,C_NAME,V_SOUND,C_WORD,V_WORD,CONS,VOWS,HG_STAGE,
   KO_WORDS,KO_SENT,KO_EXTRA,koEmoji,EN_LETTERS,EN_WORDS,EN_SENT,
   rng,setRandom,pick,shuffle,uniq,syl,ROUND,MAXLV,itemWeight,weightedPick,adjustLevel,
   hgSyllablePool,hgChoiceQuestion,hgComposeQuestion,hgSplitQuestion,hgFillQuestion,hgBuildQuestion,sentQuestion,sentFor,
@@ -521,7 +530,7 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 
 // ================= 저장 =================
 const LS='jp3';
-function defaults(){ return {name:'지환',stars:0,stk:0,found:[],p:{},set:{sound:true,fix:{},ko:{voice:'',rate:.85,pitch:1.1},en:{voice:'',rate:.8,pitch:1.05}}}; }
+function defaults(){ return {name:'지환',stars:0,stk:0,found:[],p:{},set:{sound:true,voiceMode:'clip',fix:{},ko:{voice:'',rate:.85,pitch:1.1},en:{voice:'',rate:.8,pitch:1.05}}}; }
 function merge(d,o){ if(!o||typeof o!=='object') return d; for(const k in d){ if(d[k]&&typeof d[k]==='object'&&!Array.isArray(d[k])) d[k]=merge(d[k],o[k]); else if(o[k]!==undefined) d[k]=o[k]; } for(const k in o){ if(!(k in d)) d[k]=o[k]; } return d; }
 let S; try{ S=merge(defaults(),JSON.parse(localStorage.getItem(LS))); }catch(e){ S=defaults(); }
 function save(){ try{ localStorage.setItem(LS,JSON.stringify(S)); }catch(e){} }
@@ -537,42 +546,122 @@ const SFX={ tap(){ tone(660,.07,'triangle',.09); }, pop(){ tone(900,.06,'sine',.
   merge(){ tone(392,.12,'triangle',.1); tone(523,.12,'triangle',.1,.1); tone(784,.3,'triangle',.12,.2); },
   win(){ [523,659,784,1047,784,1047,1319].forEach((f,i)=>tone(f,.22,'triangle',.13,i*.11)); } };
 
+
+// ================= 미리 만든 목소리(음성 파일) =================
+// 기기의 음성 엔진 대신, 사람 말투에 가까운 목소리를 미리 만들어 앱 안에 넣어 뒀어요. 파일이 없는 말만 기기 목소리로 말해요.
+const Clips=(function(){
+  let map=null, cur=null; const cache=new Map();
+  const key=(lang,t)=>lang+'|'+t;
+  function b64(str){ const bin=atob(str), n=bin.length, u=new Uint8Array(n); for(let i=0;i<n;i++) u[i]=bin.charCodeAt(i); return u.buffer; }
+  function init(){ if(window.AUDIO){ map=window.AUDIO; return Promise.resolve(); }
+    try{ return fetch('audio/manifest.json').then(r=>r.ok?r.json():null).then(m=>{ if(m) map=m; }).catch(()=>{}); }catch(e){ return Promise.resolve(); } }
+  const has=(lang,t)=>!!(map&&map[key(lang,t)]);
+  function load(lang,t){ const k=key(lang,t); if(cache.has(k)) return Promise.resolve(cache.get(k));
+    const v=map[k], a=ac(); if(!a) return Promise.reject(new Error('no audio'));
+    const raw=v.indexOf('data:')===0?Promise.resolve(b64(v.slice(v.indexOf(',')+1))):fetch('audio/'+v).then(r=>{ if(!r.ok) throw new Error('fetch'); return r.arrayBuffer(); });
+    return raw.then(ab=>new Promise((res,rej)=>{ const p=a.decodeAudioData(ab,res,rej); if(p&&p.then) p.then(res,rej); })).then(b=>{ cache.set(k,b); if(cache.size>80) cache.delete(cache.keys().next().value); return b; }); }
+  // 재생해요. 끝나면 true, 소리 파일을 못 쓰면 false (그때는 기기 목소리로 말해요)
+  function play(lang,t,cancelled){
+    return load(lang,t).then(buf=>new Promise(res=>{
+      if(cancelled()){ res(true); return; }
+      const a=ac(); if(!a){ res(false); return; }
+      const src=a.createBufferSource(), g=a.createGain(); src.buffer=buf; g.gain.value=1; src.connect(g); g.connect(a.destination);
+      let done=false; const fin=()=>{ if(done) return; done=true; if(cur===src) cur=null; res(true); };
+      src.onended=fin; cur=src; try{ src.start(); }catch(e){ fin(); return; }
+      setTimeout(fin,Math.round(buf.duration*1000)+700);
+    })).catch(()=>false);
+  }
+  function stop(){ const c=cur; cur=null; if(c){ try{ c.onended=null; c.stop(); }catch(e){} } }
+  return {init,has,play,stop,count:()=>map?Object.keys(map).length:0};
+})();
+
 // ================= 목소리 =================
+// 소리가 안 나는 이유(한국어 음성 데이터가 없음, 온라인 목소리 연결 실패 등)를 숨기지 않고 알아내서
+// 다른 목소리로 다시 시도하고, 계속 안 되면 부모님이 알 수 있게 알려요.
 const Voice=(function(){
-  let web=[], nat=[], gen=0;
+  let web=[], nat=[], gen=0, fails=0, checked=false, warned=false, spoke=0, lastError='', lastVoice='';
+  const bad=new Set();
   const nt=()=>{ try{ const C=window.Capacitor; if(C&&C.isNativePlatform&&C.isNativePlatform()&&C.Plugins&&C.Plugins.TextToSpeech) return C.Plugins.TextToSpeech; }catch(e){} return null; };
-  function loadWeb(){ try{ web=speechSynthesis.getVoices()||[]; }catch(e){ web=[]; } }
-  function loadNative(){ const t=nt(); if(!t||!t.getSupportedVoices) return; try{ Promise.resolve(t.getSupportedVoices()).then(r=>{ nat=(r&&r.voices)||[]; }).catch(()=>{}); }catch(e){} }
-  function init(){ try{ if('speechSynthesis' in window){ loadWeb(); speechSynthesis.onvoiceschanged=loadWeb; } }catch(e){} loadNative(); }
+  const supported=()=>{ try{ return !!nt()||('speechSynthesis' in window&&'SpeechSynthesisUtterance' in window); }catch(e){ return false; } };
+  function loadWeb(){ try{ web=speechSynthesis.getVoices()||[]; }catch(e){ web=[]; } if(web.length) checked=true; }
+  function loadNative(){ const t=nt(); if(!t||!t.getSupportedVoices) return; try{ Promise.resolve(t.getSupportedVoices()).then(r=>{ nat=(r&&r.voices)||[]; checked=true; }).catch(()=>{ checked=true; }); }catch(e){} }
+  function init(){
+    try{ if('speechSynthesis' in window){ loadWeb(); speechSynthesis.onvoiceschanged=loadWeb; } }catch(e){}
+    loadNative(); Clips.init();
+    // 안드로이드 크롬은 목소리 목록을 늦게 주거나 알려 주지 않을 때가 있어서 몇 초 동안 다시 확인해요
+    let n=0; const t=setInterval(function(){ loadWeb(); if(web.length||++n>12){ clearInterval(t); checked=true; if(Voice.onProblem&&problem()) Voice.onProblem(); } },500);
+  }
   const all=()=>nt()?nat:web;
   const code=l=>l==='ko'?'ko':'en';
   const vid=v=>v&&(v.voiceURI||v.name);
+  const usable=()=>all().filter(v=>!bad.has(vid(v)));
   function list(lang){ return all().map((v,i)=>({v,i,s:J.voiceScore(v,code(lang))})).filter(x=>x.s>-999).sort((a,b)=>b.s-a.s); }
-  function chosen(lang){ const saved=S.set[lang].voice, L=all(); if(saved){ const f=L.find(v=>vid(v)===saved); if(f) return f; } return J.bestVoice(L,code(lang)); }
+  function chosen(lang){ const saved=S.set[lang].voice, L=usable(); if(saved){ const f=L.find(v=>vid(v)===saved); if(f) return f; } return J.bestVoice(L,code(lang)); }
   function stopEngine(){ const t=nt(); if(t){ try{ Promise.resolve(t.stop()).catch(()=>{}); }catch(e){} } try{ if('speechSynthesis' in window) speechSynthesis.cancel(); }catch(e){} }
-  function stop(){ gen++; stopEngine(); }
-  function one(text,lang,o,my){
+  function stop(){ gen++; Clips.stop(); stopEngine(); }
+  function problem(){ // 부모님께 알려야 할 문제가 있으면 짧은 이름을 돌려줘요
+    if(S.set.voiceMode!=='device'&&Clips.count()>0&&ac()) return '';   // 미리 만든 목소리를 쓸 수 있으면 기기 음성이 없어도 괜찮아요
+    if(!supported()) return 'unsupported';
+    if(fails>=2&&spoke===0) return 'fail';
+    if(fails>=3) return 'fail';
+    if(checked&&!nt()&&web.length===0&&spoke===0) return 'novoice';
+    return '';
+  }
+  function noteFail(err){ fails++; lastError=err||'알 수 없는 오류'; if(!warned&&problem()){ warned=true; if(Voice.onProblem) Voice.onProblem(); } }
+  function webTry(text,lang,voice,rate,pitch){
     return new Promise(function(res){
-      if(!S.set.sound||!text||my!==gen){ res(); return; }
-      const st=S.set[lang]||S.set.ko, rate=(o&&o.rate)||st.rate, pitch=(o&&o.pitch)||st.pitch; let done=false, timer;
-      const fin=function(){ if(done) return; done=true; clearTimeout(timer); res(); };
-      timer=setTimeout(fin,Math.max(1400,String(text).length*300/rate+900));
-      const t=nt();
-      if(t){ try{ const v=chosen(lang), idx=v?nat.indexOf(v):-1; const opt={text:String(text),lang:lang==='ko'?'ko-KR':'en-US',rate:rate,pitch:pitch,volume:1,category:'ambient'}; if(idx>=0) opt.voice=idx; Promise.resolve(t.speak(opt)).then(fin,fin); }catch(e){ fin(); } return; }
-      try{ if(!('speechSynthesis' in window)){ fin(); return; } const u=new SpeechSynthesisUtterance(String(text)); u.lang=lang==='ko'?'ko-KR':'en-US'; const v=chosen(lang); if(v) u.voice=v; u.rate=rate; u.pitch=pitch; u.volume=1; u.onend=fin; u.onerror=fin; speechSynthesis.speak(u); }catch(e){ fin(); }
+      let started=false, done=false, t1, t2;
+      const fin=function(r){ if(done) return; done=true; clearTimeout(t1); clearTimeout(t2); res(r); };
+      try{
+        const u=new SpeechSynthesisUtterance(String(text)); u.lang=lang==='ko'?'ko-KR':'en-US'; if(voice) u.voice=voice; u.rate=rate; u.pitch=pitch; u.volume=1;
+        u.onstart=function(){ started=true; clearTimeout(t1); };
+        u.onend=function(){ fin({ok:true}); };
+        u.onerror=function(e){ const er=(e&&e.error)||'error'; fin(er==='interrupted'||er==='canceled'?{ok:true,skipped:true}:{ok:false,err:er}); };
+        try{ speechSynthesis.resume(); }catch(e){}
+        speechSynthesis.speak(u);
+        t1=setTimeout(function(){ if(!started){ try{ speechSynthesis.cancel(); }catch(e){} fin({ok:false,err:'소리가 시작되지 않음'}); } },3000);   // 말을 시작하지 못하면 실패로 봐요
+        t2=setTimeout(function(){ fin({ok:started,err:started?'':'소리가 시작되지 않음'}); },Math.max(3000,String(text).length*380/rate+1800)); // 너무 오래 걸려도 다음으로 넘어가요
+      }catch(e){ fin({ok:false,err:String((e&&e.message)||e)}); }
     });
+  }
+  async function one(text,lang,o,my){
+    if(!S.set.sound||!text||my!==gen) return {ok:true,skipped:true};
+    // 1) 미리 만든 목소리(음성 파일): 기기 음성 엔진이 없어도 같은 목소리가 나와요
+    if(S.set.voiceMode!=='device'&&Clips.has(lang,text)){
+      const played=await Clips.play(lang,text,function(){ return my!==gen; });
+      if(played){ spoke++; fails=0; lastVoice='미리 만든 목소리'; return {ok:true,voice:lastVoice,clip:true}; }
+    }
+    // 2) 기기 목소리
+    const st=S.set[lang]||S.set.ko, rate=(o&&o.rate)||st.rate, pitch=(o&&o.pitch)||st.pitch;
+    const t=nt();
+    if(t){
+      try{ const v=chosen(lang), idx=v?nat.indexOf(v):-1; const opt={text:String(text),lang:lang==='ko'?'ko-KR':'en-US',rate:rate,pitch:pitch,volume:1,category:'ambient'}; if(idx>=0) opt.voice=idx;
+        await Promise.race([Promise.resolve(t.speak(opt)),sleep(Math.max(2500,String(text).length*400/rate+1500))]); spoke++; fails=0; lastVoice=v?vid(v):'기기 기본'; return {ok:true,voice:lastVoice}; }
+      catch(e){ noteFail(String((e&&e.message)||e)); return {ok:false,err:String((e&&e.message)||e)}; }
+    }
+    if(!supported()){ noteFail('이 브라우저는 말하기를 지원하지 않아요'); return {ok:false,err:'unsupported'}; }
+    const v=chosen(lang); let r=await webTry(text,lang,v,rate,pitch);
+    if(my!==gen) return {ok:true,skipped:true};
+    if(!r.ok&&v){ bad.add(vid(v)); r=await webTry(text,lang,null,rate,pitch); lastVoice='기기 기본'; }   // 고른 목소리가 안 되면 기기 기본 목소리로 다시
+    else lastVoice=v?vid(v):'기기 기본';
+    if(r.ok){ if(!r.skipped){ spoke++; fails=0; } return {ok:true,voice:lastVoice}; }
+    noteFail(r.err); return {ok:false,err:r.err};
   }
   // 말하기: 이전 말은 멈추고 새로 말해요. 여러 조각이면 차례대로, 숫자는 쉬는 시간(ms)이에요.
   async function seq(steps){
-    stop(); const my=++gen;
+    stop(); const my=++gen; await sleep(90);  // 멈춘 직후에 바로 말하면 안드로이드에서 소리가 사라지는 일이 있어서 잠깐 기다려요
     for(const s of steps){ if(my!==gen) return false; if(typeof s==='number'){ await sleep(s); continue; }
       const o=typeof s==='string'?{t:s,lang:'ko'}:s; const parts=J.speechChunks(o.t);
       for(const p of parts){ if(my!==gen) return false; await one(p,o.lang||'ko',o,my); } }
     return my===gen;
   }
   const say=(t,lang)=>seq([{t:t,lang:lang||'ko'}]);
-  function unlock(){ try{ if('speechSynthesis' in window&&!nt()){ const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } }catch(e){} ac(); }
-  return {init,list,chosen,seq,say,stop,unlock,vid,hasKo:()=>!!J.bestVoice(all(),'ko'),hasEn:()=>!!J.bestVoice(all(),'en'),native:()=>!!nt()};
+  function unlock(){ ac(); try{ if('speechSynthesis' in window&&!nt()) speechSynthesis.resume(); }catch(e){} }
+  // 부모님 설정의 "소리 확인": 한국어·영어를 한 번씩 말해 보고 결과를 돌려줘요
+  async function test(lang,sample){ stop(); const my=++gen; await sleep(90); bad.clear(); const before=spoke; const r=await one(sample,lang,{},my); return {ok:!!r.ok&&!r.skipped&&spoke>before||(!!r.ok&&!r.skipped),voice:lastVoice,err:r.err||lastError}; }
+  function diag(){ return {supported:supported(),native:!!nt(),ko:list('ko').length,en:list('en').length,chosenKo:(chosen('ko')||{}).name||'',chosenEn:(chosen('en')||{}).name||'',spoke:spoke,fails:fails,lastError:lastError,lastVoice:lastVoice,bad:Array.from(bad),checked:checked}; }
+  function openInstall(){ const t=nt(); if(t&&t.openInstall){ try{ t.openInstall(); return true; }catch(e){} } return false; }
+  return {init,list,chosen,seq,say,stop,unlock,vid,test,diag,problem,openInstall,onProblem:null,hasKo:()=>!!J.bestVoice(all(),'ko'),hasEn:()=>!!J.bestVoice(all(),'en'),native:()=>!!nt()};
 })();
 const EN=t=>({t:t,lang:'en'});
 const enName=L=>J.EN_NAMES[L.toUpperCase()]||L;
@@ -623,6 +712,7 @@ function home(){
   Voice.stop(); clearLater(); curScreen={name:'home'}; leaveHome(); title('지환이의 신나는 놀이방'); setNav(false); stars();
   const v=view(); v.innerHTML='';
   v.append(mrow(ART.tri,vocative(S.name)+', 안녕! 오늘은 어떤 놀이를 할까요?'));
+  if(Voice.problem()) v.append(h('button',{class:'notice',onclick:()=>{ SFX.tap(); parent(); }},'🔇 소리가 안 나나요? 부모님은 여기를 눌러 확인해 주세요'));
   const lvOf2=w=>{ const g=ORDER[w].filter(x=>GAMES[x].make); return Math.round(g.reduce((a,x)=>a+lvOf(x),0)/g.length); };
   v.append(h('div',{class:'worlds'},
     h('button',{class:'wcard ko',onclick:()=>{ SFX.tap(); world('ko'); }},h('div',{class:'wbig'},'ㄱㅏ'),h('div',null,h('div',{class:'wt'},'한글 나라'),h('div',{class:'ws'},'ㄱ + ㅏ = 가')),h('div',{class:'wlv'},'🌟 평균 Lv '+lvOf2('ko'))),
@@ -731,15 +821,15 @@ function rCompose(R,q,st){
   st.append(h('div',{class:'prompt'},'자음과 모음이 만나면?',h('small',null,'소리를 합쳐서 어떤 글자가 되는지 맞혀 봐요')));
   const res=h('div',{class:'res q'},'?');
   st.append(h('div',{class:'eq'},h('div',{class:'tile c'},q.c),h('span',{class:'op'},'+'),h('div',{class:'tile v'},q.v),h('span',{class:'op'},'='),res));
-  const snd=()=>[soundOf(q.c)||'', 120, J.V_SOUND[q.v]];
-  st.append(speakBtn(()=>Voice.seq(snd().filter(x=>x!==''))));
+  const snd=()=>[J.sounds(q.c,q.v)];
+  st.append(speakBtn(()=>Voice.seq(snd())));
   const first=R.i<=1&&!R.promptSaid; R.promptSaid=true;
-  later(()=>Voice.seq((first?['자음과 모음이 만나면 어떤 글자가 될까요?',200]:[]).concat(snd().filter(x=>x!==''))),250);
+  later(()=>Voice.seq((first?['자음과 모음이 만나면 어떤 글자가 될까요?',200]:[]).concat(snd())),250);
   const opts=h('div',{class:'opts n'+q.options.length}); st.append(opts); let wrong=0, lock=false;
   q.options.forEach(o=>{ const b=h('button',{class:'opt','data-v':o},o);
     b.onclick=()=>{ if(lock) return; Voice.unlock();
       if(o===q.answer){ lock=true; b.classList.add('ok'); res.textContent=o; res.className='res on'; SFX.merge(); burst(b); opts.querySelectorAll('.opt').forEach(x=>{ if(x!==b) x.classList.add('off'); });
-        wait(R,snd().filter(x=>x!=='').concat([150,q.answer,pick(PRAISE)])).then(()=>answered(R,q,wrong===0)); }
+        wait(R,[J.phonics(q.c,q.v),pick(PRAISE)]).then(()=>answered(R,q,wrong===0)); }
       else { wrong++; wrongFx(b); b.classList.add('off');
         if(wrong>=3){ lock=true; const c=[...opts.children].find(x=>x.dataset.v===q.answer); c.classList.remove('off'); c.classList.add('ok'); res.textContent=q.answer; res.className='res on'; wait(R,['이 글자예요.',q.answer]).then(()=>answered(R,q,false)); }
         else { if(wrong===2) [...opts.children].find(x=>x.dataset.v===q.answer).classList.add('hint'); Voice.seq([pick(TRYAGAIN)]); } } };
@@ -760,7 +850,7 @@ function rSplit(R,q,st){
     opts.forEach(x=>{ const hint=R.lv<=2?(kind==='c'?(soundOf(x)||'·'):J.V_SOUND[x]):''; const b=h('button',{class:'tile '+kind,'data-v':x},x,hint?h('small',null,hint):null);
       b.onclick=()=>{ if((kind==='c'&&gotC)||(kind==='v'&&gotV)) return; Voice.unlock();
         if(x===target){ slot.textContent=x; slot.classList.add('on'); b.classList.add('used'); SFX.pop(); Voice.seq([kind==='c'?(soundOf(x)||'이응'):J.V_SOUND[x]]); if(kind==='c') gotC=true; else gotV=true;
-          if(gotC&&gotV){ res.className='res on'; SFX.merge(); burst(res); const stp=[q.c==='ㅇ'?'':soundOf(q.c),150,J.V_SOUND[q.v],200,q.s,pick(PRAISE)].filter(z=>z!==''); wait(R,stp).then(()=>answered(R,q,wrong===0)); } }
+          if(gotC&&gotV){ res.className='res on'; SFX.merge(); burst(res); wait(R,[J.phonics(q.c,q.v),pick(PRAISE)]).then(()=>answered(R,q,wrong===0)); } }
         else { wrong++; wrongFx(b); if(wrong>=2){ [...tiles.children].find(z=>z.dataset.v===target).classList.add('hint'); } Voice.seq([pick(TRYAGAIN)]); } };
       tiles.append(b); });
   }
@@ -870,7 +960,7 @@ function freeHg(){
   function reset(){ c=null; vv=null; sc.textContent=''; sv.textContent=''; sc.className='slot c'; sv.className='slot v'; res.textContent='?'; res.className='res q'; note.textContent=''; }
   async function merge(){ if(!c||!vv) return; const sy=J.compose(c,vv); res.textContent=sy; res.className='res on'; SFX.merge(); burst(res);
     const f=found(), isNew=!f.has(sy); if(isNew){ S.found.push(sy); if(S.found.length%10===0){ S.stars+=1; stars(); note.textContent='🎁 새 글자를 10개 만들어서 별을 1개 받았어요!'; } else note.textContent='✨ 새로운 글자예요!'; save(); upd(); } else note.textContent='';
-    await Voice.seq([c==='ㅇ'?'':soundOf(c),150,J.V_SOUND[vv],200,sy].filter(x=>x!=='')); }
+    await Voice.seq([J.phonics(c,vv)]); }
   v.append(mrow(ART.tri,'자음과 모음을 하나씩 눌러서 글자를 만들어 봐요!'));
   const st=h('div',{class:'stage'}); v.append(st);
   st.append(h('div',{class:'eq'},sc,h('span',{class:'op'},'+'),sv,h('span',{class:'op'},'='),res),counter,note);
@@ -899,6 +989,24 @@ function learnEn(){
   draw(); later(()=>Voice.seq(['알파벳 카드예요. 글자를 눌러 보세요.']),300);
 }
 
+
+// ================= 소리 진단 =================
+function diag(host){
+  const box=h('div',{class:'panel',style:{background:'#f5f8ff'}}); host.append(box);
+  const line=t=>box.append(h('p',null,t));
+  const a=ac(); line('① 소리 장치: '+(a?('사용 가능 ('+a.state+')'):'사용할 수 없어요'));
+  line('② 미리 만든 목소리: '+(Clips.count()?Clips.count()+'개 말이 들어 있어요':'파일을 찾지 못했어요'));
+  const ko=Voice.list('ko').length, en=Voice.list('en').length; line('③ 기기 음성 엔진: 한국어 '+ko+'개, 영어 '+en+'개'+((ko+en)===0?' (없어도 괜찮아요. 미리 만든 목소리를 써요)':'')+(Voice.diag().lastError?' · 마지막 오류: '+Voice.diag().lastError:''));
+  line('④ 아래 버튼을 차례로 눌러서 소리가 들리는지 확인해요.');
+  const res=h('p',{class:'warn'},''); 
+  const run=async(name,fn)=>{ res.textContent=name+' 재생 중…'; try{ await fn(); res.textContent=name+': 재생이 끝났어요. 소리가 들렸나요? 안 들렸다면 폰 볼륨을 확인해 주세요.'; }catch(e){ res.textContent=name+': 오류 ('+(e&&e.message||e)+')'; } };
+  box.append(h('div',{class:'btnrow',style:{justifyContent:'flex-start'}},
+    h('button',{class:'sm',onclick:()=>run('삑 소리',async()=>{ Voice.unlock(); SFX.ok(); await sleep(700); })},'🔔 삑 소리'),
+    h('button',{class:'sm pri',onclick:()=>run('미리 만든 목소리',async()=>{ Voice.unlock(); const keep=S.set.voiceMode; S.set.voiceMode='clip'; await Voice.seq(['잘했어요!']); S.set.voiceMode=keep; })},'🗣️ 미리 만든 목소리'),
+    h('button',{class:'sm',onclick:async()=>{ Voice.unlock(); res.textContent='기기 목소리를 확인하는 중이에요…'; const keep=S.set.voiceMode; S.set.voiceMode='device'; const r=await Voice.test('ko','기기 목소리 시험이에요.'); S.set.voiceMode=keep;
+      res.textContent=r.ok?('✔ 기기 목소리가 말했어요 (목소리: '+(r.voice||'기본')+'). 그래도 안 들렸다면 폰 볼륨을 확인해 주세요.'):('✘ 기기 목소리가 소리를 내지 못했어요'+(r.err?' ('+r.err+')':'')+'. 이 폰에 한국어 음성 데이터가 없는 것 같아요. 아래 "한국어 음성 설치 방법"을 따라 해 주세요. (미리 만든 목소리는 이것과 상관없이 나와요)'); }},'📱 기기 목소리')),res);
+}
+
 // ================= 부모님 설정 =================
 function parent(){
   Voice.stop(); clearLater(); curScreen={name:'parent'}; markNav(); title('부모님 설정'); setNav(true);
@@ -914,17 +1022,31 @@ function panel(){
   v.append(h('div',{class:'panel'},h('h3',null,'기본'),h('label',null,'아이 이름'),nm,h('label',null,snd,'소리 켜기 (목소리·효과음)')));
   // 목소리
   const vp=h('div',{class:'panel'},h('h3',null,'목소리')); v.append(vp);
-  [['ko','한국어 목소리','안녕하세요. 같이 글자 놀이를 해 봐요.'],['en','영어 목소리','Hello! Let us learn the alphabet together.']].forEach(([lang,label,sample])=>{
+  const mode=h('select',{onchange:e=>{ S.set.voiceMode=e.target.value; save(); }},h('option',{value:'clip'},'미리 만든 목소리 (추천)'),h('option',{value:'device'},'기기 목소리 (폰에 설치된 음성)')); mode.value=S.set.voiceMode==='device'?'device':'clip';
+  vp.append(h('label',null,'목소리 종류'),mode,h('p',null,Clips.count()?('이 앱에는 사람 말투에 가까운 한국어·영어 목소리가 미리 들어 있어요 ('+Clips.count()+'개 말). 기기에 음성 엔진이 없어도 같은 목소리가 나와요.'):'이 화면에서는 미리 만든 목소리 파일을 찾지 못했어요. 기기 목소리로 말해요.'),
+    h('div',{class:'btnrow',style:{justifyContent:'flex-start'}},h('button',{class:'sm pri',onclick:()=>{ Voice.unlock(); Voice.seq(['안녕하세요! 같이 글자 놀이를 해 봐요.']); }},'🔊 한국어 들어 보기'),h('button',{class:'sm en',onclick:()=>{ Voice.unlock(); Voice.seq([{t:'ay, apple.',lang:'en'}]); }},'🔊 영어 들어 보기')),
+    h('p',{class:'warn',style:{marginTop:'12px'}},'소리가 안 나올 때'),
+    h('p',null,'1. 폰의 "미디어 볼륨"이 켜져 있는지, 무음·방해 금지 모드가 아닌지 확인해요. 2. 위 "한국어 들어 보기"를 눌러 봐요. 3. 그래도 안 나오면 "소리 진단"을 눌러 결과를 알려 주세요.'),
+    h('button',{class:'sm',style:{marginTop:'6px'},onclick:()=>diag(vp)},'🩺 소리 진단'));
+  const dev=h('div',{class:'panel'},h('h3',null,'기기 목소리 설정'),h('p',null,'"기기 목소리"를 고른 경우, 또는 미리 만든 목소리가 없는 말에만 쓰여요.')); v.append(dev);
+  [['ko','한국어 기기 목소리','안녕하세요. 같이 글자 놀이를 해 봐요.'],['en','영어 기기 목소리','Hello! Let us learn the alphabet together.']].forEach(([lang,label,sample])=>{
     const L=Voice.list(lang), cur=Voice.chosen(lang), st=S.set[lang];
     const sel=h('select',{onchange:e=>{ st.voice=e.target.value; save(); }},h('option',{value:''},'자동 (가장 자연스러운 목소리)'),L.map(x=>h('option',{value:Voice.vid(x.v)},Voice.vid(x.v)+(x.v.localService===false?'  ★온라인':'')))); sel.value=st.voice||'';
     const rate=h('input',{type:'range',min:'.6',max:'1.1',step:'.05',value:st.rate,oninput:e=>{ st.rate=+e.target.value; save(); }});
     const pit=h('input',{type:'range',min:'.8',max:'1.5',step:'.05',value:st.pitch,oninput:e=>{ st.pitch=+e.target.value; save(); }});
-    vp.append(h('label',null,label),sel,h('p',null,L.length?('지금 쓰는 목소리: '+(cur?Voice.vid(cur):'기본')):'이 기기에서 찾은 목소리가 없어요. 아래 방법으로 목소리를 설치해 주세요.'),
+    dev.append(h('label',null,label),sel,h('p',null,L.length?('찾은 목소리 '+L.length+'개 · 지금 쓰는 목소리: '+(cur?Voice.vid(cur):'기본')):'이 기기에서 찾은 목소리가 없어요.'),
       h('label',null,'말하는 속도 (왼쪽이 느려요)'),rate,h('label',null,'목소리 높낮이 (오른쪽이 밝아요)'),pit,
-      h('button',{class:'sm pri',style:{marginTop:'10px'},onclick:()=>{ Voice.unlock(); Voice.seq([{t:sample,lang}]); }},'🔊 들어 보기'));
+      h('button',{class:'sm',style:{marginTop:'10px'},onclick:()=>{ Voice.unlock(); const keep=S.set.voiceMode; S.set.voiceMode='device'; Voice.seq([{t:sample,lang}]).then(()=>{ S.set.voiceMode=keep; }); }},'🔊 기기 목소리 들어 보기'));
   });
-  vp.append(h('p',{class:'warn'},'목소리가 기계 같으면: '),h('p',null,'• 안드로이드: 설정 → 일반 → 텍스트 음성 변환(TTS) → Google 음성 서비스 → 한국어 음성 데이터를 내려받고, 위 목록에서 "network"나 "★온라인" 목소리를 골라 주세요.'),
-    h('p',null,'• 아이패드/아이폰: 설정 → 손쉬운 사용 → 음성 콘텐츠 → 음성 → 한국어 → "유나(향상된)"를 내려받아요.'),h('p',null,'• PC(엣지): 한국어 "SunHi Online (Natural)" 목소리가 가장 자연스러워요. 크롬은 "Google 한국어"를 골라 주세요.'));
+  const det=(t,...kids)=>h('details',null,h('summary',null,t),...kids);
+  dev.append(h('h3',{style:{marginTop:'16px',fontSize:'20px'}},'한국어 음성 설치 방법'),
+    h('p',null,'기기 목소리로 소리가 전혀 안 나오면 대부분 폰에 한국어 음성 데이터가 없어서예요. 폰 종류에 맞게 따라 해 보세요. 메뉴를 못 찾겠으면 설정 앱 맨 위 검색창에 "글자 읽어주기" 또는 "텍스트 음성"을 입력해요.'),
+    ...(Voice.native()?[h('button',{class:'sm',style:{margin:'4px 0 8px'},onclick:()=>{ if(!Voice.openInstall()) toast('이 기기에서는 설치 화면을 바로 열 수 없어요. 아래 방법을 따라 해 주세요.'); }},'📥 한국어 음성 설치 화면 열기')]:[]),
+    det('삼성 갤럭시 (메뉴 이름이 "글자 읽어주기"예요)',h('p',null,'① 설정 → 일반 → 글자 읽어주기'),h('p',null,'② "삼성 TTS 엔진" 오른쪽의 ⚙️ 설정 아이콘을 눌러요.'),h('p',null,'③ "언어 및 음성"에 "한국어(대한민국)"가 있는지 확인해요. 없으면 "음성 데이터 설치"에서 한국어를 내려받아요. (절전 모드에서는 이 메뉴가 안 보여요.)'),h('p',null,'④ 더 자연스러운 목소리를 원하면 "선호하는 엔진"을 Google 음성 인식 및 합성으로 바꾸고 한국어 음성 데이터를 내려받아요. (Play 스토어에서 "음성 인식 및 합성" 앱을 먼저 설치해요.)')),
+    det('그 밖의 안드로이드 (픽셀, LG, 샤오미 등)',h('p',null,'설정 → 시스템 → 언어 및 입력 → 텍스트 음성 변환 출력 → 선호하는 엔진을 Google 음성 인식 및 합성으로 → ⚙️ → 음성 데이터 설치 → 한국어(대한민국)를 내려받아요.')),
+    det('아이패드·아이폰',h('p',null,'설정 → 손쉬운 사용 → 음성 콘텐츠 → 음성 → 한국어 → "유나"에서 "향상된" 또는 "프리미엄"을 내려받아요.')),
+    det('PC',h('p',null,'엣지는 "SunHi Online (Natural)" 한국어 목소리가 가장 자연스러워요. 크롬은 위 목록에서 "Google 한국어"를 골라요. 윈도우는 설정 → 시간 및 언어 → 음성 → 음성 추가에서 한국어를 설치해요.')),
+    det('설치했는데도 안 나와요',h('p',null,'① 폰을 껐다 켠 뒤 크롬을 완전히 종료하고 다시 열어요. ② 위 "소리 진단"을 눌러 "마지막 오류"를 확인해요. ③ 크롬 말고 놀이방 앱(APK)으로 열면 폰의 음성 엔진을 직접 써서 더 잘 나와요.')));
   // 난이도
   const dp=h('div',{class:'panel'},h('h3',null,'놀이 단계 (난이도)'),h('p',null,'기본은 자동이에요. 한 판을 잘 마치면 단계가 올라가고, 어려워하면 한 단계 내려가요. 고정하면 그 단계로만 놀아요.')); v.append(dp);
   ['ko','en'].forEach(w=>ORDER[w].filter(id=>GAMES[id].make).forEach(id=>{ const p=prog(id); const sel=h('select',{onchange:e=>{ const x=+e.target.value; if(x) S.set.fix[id]=x; else delete S.set.fix[id]; save(); }},h('option',{value:'0'},'자동 (Lv '+p.lv+')'),[1,2,3,4,5].map(n=>h('option',{value:n},'Lv '+n+' 고정'))); sel.value=String(S.set.fix[id]||0);
@@ -936,13 +1058,13 @@ function panel(){
 
 // ================= 시작 =================
 function init(){
-  Voice.init(); stars();
+  Voice.init(); Voice.onProblem=()=>{ if(curScreen.name==='home') home(); }; stars();
   $('#back').addEventListener('click',()=>{ SFX.tap(); goBack(); });
   $('#gear').addEventListener('click',()=>{ SFX.tap(); parent(); });
-  let greeted=false; document.addEventListener('pointerdown',()=>{ Voice.unlock(); if(!greeted&&curScreen.name==='home'){ greeted=true; Voice.seq([vocative(S.name)+', 안녕! 같이 놀자.']); } },{once:false,passive:true});
+  let greeted=false; document.addEventListener('pointerdown',()=>{ Voice.unlock(); if(!greeted&&curScreen.name==='home'){ greeted=true; Voice.seq([S.name==='지환'?'지환아, 안녕! 같이 놀자.':'안녕! 같이 놀자.']); } },{once:false,passive:true});
   document.addEventListener('visibilitychange',()=>{ if(document.hidden) Voice.stop(); });
   home();
-  window.__JP={S:()=>S,go:{home,world,parent,stickers,openGame,startRound},cur:()=>curScreen,Voice,GAMES};
+  window.__JP={S:()=>S,go:{home,world,parent,stickers,openGame,startRound,finish},cur:()=>curScreen,Voice,GAMES};
 }
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();
