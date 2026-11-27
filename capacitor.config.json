@@ -1,0 +1,11 @@
+{
+  "appId": "com.jihwan.playroom",
+  "appName": "지환이 놀이방",
+  "webDir": "docs",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

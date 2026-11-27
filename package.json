@@ -1,0 +1,20 @@
+{
+  "name": "jihwan-playroom",
+  "version": "1.0.0",
+  "private": true,
+  "description": "지환이의 신나는 놀이방 (웹앱 + 안드로이드 앱)",
+  "scripts": {
+    "assets": "capacitor-assets generate --android",
+    "sync": "cap sync android"
+  },
+  "dependencies": {
+    "@capacitor-community/text-to-speech": "^8.0.2",
+    "@capacitor/android": "^8.6.3",
+    "@capacitor/core": "^8.6.3"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^4.0.0",
+    "@capacitor/cli": "^8.6.3"
+  },
+  "engines": { "node": ">=22" }
+}
