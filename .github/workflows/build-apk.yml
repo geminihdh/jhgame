@@ -1,5 +1,6 @@
-# 안드로이드용 설치 파일(APK)을 GitHub에서 무료로 만들어 줘요.
-# 사용법: 저장소의 Actions 탭 → "APK 만들기" → Run workflow. 끝나면 Releases에 APK가 올라와요.
+# 안드로이드 설치 파일(APK)을 GitHub에서 무료로 만들어 줘요.
+# 파일을 올리면 자동으로 시작되고, Actions 탭에서 "Run workflow"로 다시 만들 수도 있어요.
+# 끝나면 저장소 오른쪽의 Releases에 jihwan-playroom.apk 가 올라와요.
 name: APK 만들기
 
 on:
@@ -8,9 +9,12 @@ on:
     branches: [main]
     paths:
       - 'docs/**'
-      - 'android/**'
+      - 'assets/**'
+      - 'scripts/**'
+      - 'signing/**'
       - 'package.json'
       - 'capacitor.config.json'
+      - '.github/workflows/build-apk.yml'
 
 permissions:
   contents: write
@@ -33,13 +37,19 @@ jobs:
       - name: 도구 설치
         run: npm install --no-audit --no-fund
 
+      - name: 안드로이드 프로젝트 만들기
+        run: npx cap add android
+
+      - name: 이 앱에 필요한 안드로이드 설정 넣기
+        run: node scripts/prepare-android.mjs
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+
+      - name: 앱 아이콘과 시작 화면 만들기
+        run: npx capacitor-assets generate --android
+
       - name: 웹 파일을 안드로이드 앱에 넣기
         run: npx cap sync android
-
-      - name: 버전 번호 올리기 (설치된 앱 위에 업데이트하려면 매번 커져야 해요)
-        run: |
-          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/" android/app/build.gradle
-          sed -i "s/versionName \"1.0\"/versionName \"1.${{ github.run_number }}\"/" android/app/build.gradle
 
       - name: APK 만들기
         working-directory: android
@@ -62,5 +72,5 @@ jobs:
           name: 지환이의 신나는 놀이방 APK (빌드 ${{ github.run_number }})
           body: |
             안드로이드 폰·태블릿에 설치하는 파일이에요.
-            아래 jihwan-playroom.apk 를 받아서 설치하세요. 설치 방법은 저장소의 README.md 를 보세요.
+            아래 jihwan-playroom.apk 를 받아서 설치하세요.
           files: jihwan-playroom.apk
